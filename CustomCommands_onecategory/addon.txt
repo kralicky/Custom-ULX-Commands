@@ -1,0 +1,9 @@
+"AddonInfo"
+{
+        "name"              "CustomCommands"
+        "version"           "4.4"
+        "author_name"       "Cobalt77"
+        "author_email"      ""
+        "info"              "A collection of ULX commands"
+        "override"          "0"
+}
