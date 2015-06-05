@@ -34,7 +34,7 @@ local function OnPlayerChat( ply, strText, bTeamOnly, bPlayerIsDead )
 	
 	local defcol = Color( 0, 201, 0 )
 	
-	if GAMEMODE.round_state and ply:Team() == TEAM_SPEC and not bPlayerIsDead then
+	if GAMEMODE.round_state and ply:IsSpec() and not bPlayerIsDead then
 		bPlayerIsDead = true
 	end
 	
