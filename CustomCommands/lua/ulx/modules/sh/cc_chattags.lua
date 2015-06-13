@@ -33,7 +33,11 @@ local function OnPlayerChat( ply, strText, bTeamOnly, bPlayerIsDead )
 	local tab = {}
 	
 	local defcol = Color( 0, 201, 0 )
-
+	
+	if GAMEMODE.round_state and ply:IsSpec() and not bPlayerIsDead then
+		bPlayerIsDead = true
+	end
+	
 	if ( bPlayerIsDead ) then
 	
 		table.insert( tab, Color( 255, 30, 40 ) )
@@ -44,10 +48,14 @@ local function OnPlayerChat( ply, strText, bTeamOnly, bPlayerIsDead )
 	
 	if ( bTeamOnly ) then
 	
-		table.insert( tab, Color( 30, 160, 40 ) )
+		if not GAMEMODE.round_state then
+			
+			table.insert( tab, Color( 30, 160, 40 ) )
 		
-		table.insert( tab, "(TEAM) " )
+			table.insert( tab, "(TEAM) " )
 		
+		end
+	
 	end
 	
 	if ( IsValid( ply ) ) then
