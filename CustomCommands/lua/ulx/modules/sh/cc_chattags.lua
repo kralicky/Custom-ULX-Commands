@@ -88,7 +88,7 @@ local function OnPlayerChat( ply, strText, bTeamOnly, bPlayerIsDead )
 
 		table.insert( tab, defcol )
 		
-		table.insert( tab, ply:GetName() )
+		table.insert( tab, ply )
 		
 	else
 	
