@@ -5,56 +5,63 @@
 function ulx.explode( calling_ply, target_plys )
 
 	for k, v in pairs( target_plys ) do	
+		local playerspec = v:IsSpec()
+		local playeralive = v:Alive()
 	
-		local playerpos = v:GetPos()	
+		if playerspec or not playeralive then
+			ULib.tsayError( calling_ply, v:Nick() .. " is dead!", true )
+		else	
+			local playerpos = v:GetPos()	
+			
+			local waterlevel = v:WaterLevel()	
+			
+			timer.Simple( 0.1, function()				
+				local traceworld = {}				
+					traceworld.start = playerpos					
+					traceworld.endpos = traceworld.start + ( Vector( 0,0,-1 ) * 250 )					
+					local trw = util.TraceLine( traceworld )					
+					local worldpos1 = trw.HitPos + trw.HitNormal					
+					local worldpos2 = trw.HitPos - trw.HitNormal				
+				util.Decal( "Scorch",worldpos1,worldpos2 )				
+			end )		
+			
+			if GetConVarNumber( "explode_ragdolls" ) == 1 then						
+				v:SetVelocity( Vector( 0, 0, 10 ) * math.random( 75, 150 ) )			
+				timer.Simple( 0.05, function() v:Kill() end )				
+			elseif GetConVarNumber( "explode_ragdolls" ) == 0 then			
+				v:Kill()				
+			end		
+			
+			util.ScreenShake( playerpos, 5, 5, 1.5, 200 )
+			
+			if ( waterlevel > 1 ) then		
+				local vPoint = playerpos + Vector(0,0,10)				
+					local effectdata = EffectData()					
+					effectdata:SetStart( vPoint )					
+					effectdata:SetOrigin( vPoint )					
+					effectdata:SetScale( 1 )					
+				util.Effect( "WaterSurfaceExplosion", effectdata )				
+				local vPoint = playerpos + Vector(0,0,10)				
+					local effectdata = EffectData()					
+					effectdata:SetStart( vPoint )					
+					effectdata:SetOrigin( vPoint )					
+					effectdata:SetScale( 1 )					
+				util.Effect( "HelicopterMegaBomb", effectdata ) 				
+			else			
+				local vPoint = playerpos + Vector( 0,0,10 )				
+					local effectdata = EffectData()					
+					effectdata:SetStart( vPoint )					
+					effectdata:SetOrigin( vPoint )					
+					effectdata:SetScale( 1 )					
+				util.Effect( "HelicopterMegaBomb", effectdata )				
+				v:EmitSound( Sound ("ambient/explosions/explode_4.wav") )				
+			end
+			
+			ulx.fancyLogAdmin( calling_ply, "#A exploded #T", target_plys )
+			
+		end
 		
-		local waterlevel = v:WaterLevel()	
-		
-		timer.Simple( 0.1, function()				
-			local traceworld = {}				
-				traceworld.start = playerpos					
-				traceworld.endpos = traceworld.start + ( Vector( 0,0,-1 ) * 250 )					
-				local trw = util.TraceLine( traceworld )					
-				local worldpos1 = trw.HitPos + trw.HitNormal					
-				local worldpos2 = trw.HitPos - trw.HitNormal				
-			util.Decal( "Scorch",worldpos1,worldpos2 )				
-		end )		
-		
-		if GetConVarNumber( "explode_ragdolls" ) == 1 then						
-			v:SetVelocity( Vector( 0, 0, 10 ) * math.random( 75, 150 ) )			
-			timer.Simple( 0.05, function() v:Kill() end )				
-		elseif GetConVarNumber( "explode_ragdolls" ) == 0 then			
-			v:Kill()				
-		end		
-		
-		util.ScreenShake( playerpos, 5, 5, 1.5, 200 )
-		
-		if ( waterlevel > 1 ) then		
-			local vPoint = playerpos + Vector(0,0,10)				
-				local effectdata = EffectData()					
-				effectdata:SetStart( vPoint )					
-				effectdata:SetOrigin( vPoint )					
-				effectdata:SetScale( 1 )					
-			util.Effect( "WaterSurfaceExplosion", effectdata )				
-			local vPoint = playerpos + Vector(0,0,10)				
-				local effectdata = EffectData()					
-				effectdata:SetStart( vPoint )					
-				effectdata:SetOrigin( vPoint )					
-				effectdata:SetScale( 1 )					
-			util.Effect( "HelicopterMegaBomb", effectdata ) 				
-		else			
-			local vPoint = playerpos + Vector( 0,0,10 )				
-				local effectdata = EffectData()					
-				effectdata:SetStart( vPoint )					
-				effectdata:SetOrigin( vPoint )					
-				effectdata:SetScale( 1 )					
-			util.Effect( "HelicopterMegaBomb", effectdata )				
-			v:EmitSound( Sound ("ambient/explosions/explode_4.wav") )				
-		end		
-		
-	end	
-	
-	ulx.fancyLogAdmin( calling_ply, "#A exploded #T", target_plys )	
+	end
 	
 end
 local explode = ulx.command( "Fun", "ulx explode", ulx.explode, "!explode" )
