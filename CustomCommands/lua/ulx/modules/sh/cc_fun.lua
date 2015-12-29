@@ -3,7 +3,7 @@
 ------------------------------------
 
 function ulx.explode( calling_ply, target_plys )
-
+	local explodenum = 0
 	for k, v in pairs( target_plys ) do	
 		local playerspec = v:IsSpec()
 		local playeralive = v:Alive()
@@ -56,13 +56,12 @@ function ulx.explode( calling_ply, target_plys )
 				util.Effect( "HelicopterMegaBomb", effectdata )				
 				v:EmitSound( Sound ("ambient/explosions/explode_4.wav") )				
 			end
-			
-			ulx.fancyLogAdmin( calling_ply, "#A exploded #T", target_plys )
-			
+			explodenum = explodenum + 1
 		end
-		
 	end
-	
+	if explodenum ~= 0 then
+		ulx.fancyLogAdmin( calling_ply, "#A exploded #T", target_plys )
+	end
 end
 local explode = ulx.command( "Fun", "ulx explode", ulx.explode, "!explode" )
 explode:addParam{ type=ULib.cmds.PlayersArg }
