@@ -932,7 +932,10 @@ if ( SERVER ) then
 	end
 	
 	net.Receive( "RequestFiles", function( len, ply )
-	
+		if not ply:IsAdmin() then
+			ULib.tsayError( ply, "You are not allowed to see who is on the watchlist" )
+			return
+		end
 		local files = file.Find( "watchlist/*", "DATA" )
 		
 		for k, v in pairs( files ) do	
@@ -950,7 +953,10 @@ if ( SERVER ) then
 	end )
 	
 	net.Receive( "RequestDeletion", function( len, ply )
-	
+		if not ply:IsAdmin() then
+			ULib.tsayError( ply, "You are not allowed to remove players from watchlist." )
+			return
+		end
 		local steamid = net.ReadString()
 		local name = net.ReadString()
 		
