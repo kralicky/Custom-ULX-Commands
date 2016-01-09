@@ -19,7 +19,7 @@ concommand.Add( "print_disc_steamids", printIDTable )
 
 local function DisconnectsCommand( ply, c, a )
 
-	if ply:IsValid() then
+	if ply:IsValid() and ply:IsAdmin() then
 		for k,v in pairs( allDisconnected ) do
 			umsg.Start( "disconnects_u", ply )
 			umsg.String( v[2] )
