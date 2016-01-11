@@ -108,7 +108,7 @@ end
 
 local function SoundsCommand( ply, c, a )
 
-	local allSounds = FindAllIn( "sound", "MOD" )
+	local allSounds = FindAllIn( "sound", "GAME" )
 	
 	if ( ply:IsValid() ) then
 		if GetConVarNumber( "soundlist_usedefaultsounds" ) == 0 then
