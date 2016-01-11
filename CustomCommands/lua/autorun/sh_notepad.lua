@@ -15,7 +15,7 @@ if SERVER then
 
 	function OpenNotepadChecks( ply )
 
-		if not ply:IsAdmin() then
+		if not ucl.query(ply, "ulx notepad") then
 			ULib.tsayError( ply, "You are not allowed to open this menu." )
 			return
 		end
@@ -38,7 +38,7 @@ if SERVER then
 	concommand.Add( "notepad_open", OpenNotepadChecks )
 
 	hook.Add( "PlayerInitialSpawn", "givepeoplestuff", function( ply )
-		if not ply:IsAdmin() then return end
+		if not ucl.query(ply, "ulx notepad") then return end
 		local contents = file.Read( "notepad/note.txt" )
 		
 		net.Start( "SendContents" )
@@ -48,7 +48,7 @@ if SERVER then
 	end )
 	
 	net.Receive( "GetContents", function( len, ply )
-		if not ply:IsAdmin() then
+		if not ucl.query(ply, "ulx notepad") then
 			ULib.tsayError( ply, "You are not allowed to open this menu." )
 			return
 		end
@@ -61,7 +61,7 @@ if SERVER then
 	end )
 	
 	net.Receive( "WriteQuery", function( len, ply )
-		if not ply:IsAdmin() then
+		if not ucl.query(ply, "ulx notepad") then
 			ULib.tsayError( ply, "You are not allowed to open this menu." )
 			return
 		end
