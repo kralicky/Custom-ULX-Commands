@@ -166,16 +166,17 @@ hook.Add( "CalcView", "ThirdPersonView", function( ply, pos, angles, fov )
 	end
 
 end )
-
-concommand.Add( "thirdperson_toggle", toggle )
-
+net.Receive("cc_thirdperson_toggle", function(len, ply)
+	toggle()	
+	end)
 end
 
 if ( SERVER ) then
-
+util.AddNetworkString("cc_thirdperson_toggle")
 function ulx.thirdperson( calling_ply )
 
-	calling_ply:SendLua([[RunConsoleCommand("thirdperson_toggle")]])	
+	net.Start("cc_thirdperson_toggle")
+ 	net.Send(calling_ply)	
 
 end
 local thirdperson = ulx.command( "Custom", "ulx thirdperson", ulx.thirdperson, {"!thirdperson", "!3p"}, true )
