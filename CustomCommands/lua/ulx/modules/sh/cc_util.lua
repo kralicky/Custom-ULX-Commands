@@ -513,14 +513,21 @@ function ulx.hide( calling_ply, command )
 	local prevecho = GetConVarNumber( "ulx_logecho" )
 	
 	game.ConsoleCommand( "ulx logecho 0\n" )
-	
-	if strexc == false then
-		calling_ply:ConCommand( command )
+	if IsValid(calling_ply) then
+		if strexc == false then
+			calling_ply:ConCommand( command )
+		else
+			string.gsub( newstr, "ulx ", "!" )
+			calling_ply:ConCommand( newstr )
+		end
 	else
-		string.gsub( newstr, "ulx ", "!" )
-		calling_ply:ConCommand( newstr )
+		if strexc == false then
+			game.ConsoleCommand( command )
+		else
+			string.gsub( newstr, "ulx ", "!" )
+			game.ConsoleCommand( newstr )
+		end
 	end
-	
 	timer.Simple( 0.25, function()
 		game.ConsoleCommand( "ulx logecho " .. prevecho .. "\n" )
 	end )
