@@ -480,7 +480,7 @@ function ulx.fakeban( calling_ply, target_ply, minutes, reason )
 	ulx.fancyLogAdmin( calling_ply, str, target_ply, minutes ~= 0 and minutes or reason, reason )
 	
 end
-local fakeban = ulx.command( "Fun", "ulx fakeban", ulx.fakeban, "!fakeban", true )
+local fakeban = ulx.command( "Custom", "ulx fakeban", ulx.fakeban, "!fakeban", true )
 fakeban:addParam{ type=ULib.cmds.PlayerArg }
 fakeban:addParam{ type=ULib.cmds.NumArg, hint="minutes, 0 for perma", ULib.cmds.optional, ULib.cmds.allowTimeString, min=0 }
 fakeban:addParam{ type=ULib.cmds.StringArg, hint="reason", ULib.cmds.optional, ULib.cmds.takeRestOfLine, completes=ulx.common_kick_reasons }
