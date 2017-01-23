@@ -45,6 +45,28 @@ give:defaultAccess( ULib.ACCESS_ADMIN )
 give:help( "Give a player an entity" )
 give:setOpposite ( "ulx sgive", { _, _, _, true }, "!sgive", true )
 
+function ulx.afk( calling_ply, should_afk )
+	
+	if should_afk then
+		
+		calling_ply:ConCommand( "ttt_spectator_mode 1" )
+		ulx.fancyLog( { calling_ply }, "You went AFK by using '!afk'. Please use '!unafk' to return." )
+		ulx.fancyLogAdmin( calling_ply, "#A went AFK by typing '!afk'." )
+		
+	else
+		
+		calling_ply:ConCommand( "ttt_spectator_mode 0" )
+		ulx.fancyLogAdmin( calling_ply, "#A returned from being AFK by typing '!afk'." )
+		
+	end
+	
+end
+local afk = ulx.command( "Custom", "ulx afk", ulx.afk, "!afk", true )
+afk:addParam{ type=ULib.cmds.BoolArg, invisible=true }
+afk:setOpposite( "ulx unafk", { _, false }, "!unafk", true )
+afk:defaultAccess( ULib.ACCESS_ALL )
+afk:help( "Sets yourself into Spectator mode." )
+
 function ulx.maprestart( calling_ply )
 
     timer.Simple( 1, function() -- Wait 1 second so players can see the log
@@ -80,30 +102,30 @@ function ulx.multiban( calling_ply, target_ply, minutes, reason )
 	local affected_plys = {}
 	
 	for i=1, #target_ply do
-    local v = target_ply[ i ]
+    	local v = target_ply[ i ]
 
 	
-	if v:IsBot() then
+		if v:IsBot() then
 	
-		ULib.tsayError( calling_ply, "Cannot ban a bot", true )
+			ULib.tsayError( calling_ply, "Cannot ban a bot", true )
 		
-		return
+			return
 		
-	end
+		end
 
-	table.insert( affected_plys, v )
+		table.insert( affected_plys, v )
 	
-	ULib.kickban( v, minutes, reason, calling_ply )
+		ULib.kickban( v, minutes, reason, calling_ply )
     
 	end
 	
 	local time = "for #i minute(s)"
 	
-		if minutes == 0 then time = "permanently" end
+	if minutes == 0 then time = "permanently" end
 	
 	local str = "#A banned #T " .. time
 	
-		if reason and reason ~= "" then str = str .. " (#s)" end
+	if reason and reason ~= "" then str = str .. " (#s)" end
 	
 	ulx.fancyLogAdmin( calling_ply, str, affected_plys, minutes ~= 0 and minutes or reason, reason )
 	
@@ -166,17 +188,16 @@ hook.Add( "CalcView", "ThirdPersonView", function( ply, pos, angles, fov )
 	end
 
 end )
-net.Receive("cc_thirdperson_toggle", function(len, ply)
-	toggle()	
-	end)
+
+concommand.Add( "thirdperson_toggle", toggle )
+
 end
 
 if ( SERVER ) then
-util.AddNetworkString("cc_thirdperson_toggle")
+
 function ulx.thirdperson( calling_ply )
 
-	net.Start("cc_thirdperson_toggle")
- 	net.Send(calling_ply)	
+	calling_ply:SendLua([[RunConsoleCommand("thirdperson_toggle")]])	
 
 end
 local thirdperson = ulx.command( "Custom", "ulx thirdperson", ulx.thirdperson, {"!thirdperson", "!3p"}, true )
@@ -459,7 +480,7 @@ function ulx.fakeban( calling_ply, target_ply, minutes, reason )
 	ulx.fancyLogAdmin( calling_ply, str, target_ply, minutes ~= 0 and minutes or reason, reason )
 	
 end
-local fakeban = ulx.command( "Custom", "ulx fakeban", ulx.fakeban, "!fakeban", true )
+local fakeban = ulx.command( "Fun", "ulx fakeban", ulx.fakeban, "!fakeban", true )
 fakeban:addParam{ type=ULib.cmds.PlayerArg }
 fakeban:addParam{ type=ULib.cmds.NumArg, hint="minutes, 0 for perma", ULib.cmds.optional, ULib.cmds.allowTimeString, min=0 }
 fakeban:addParam{ type=ULib.cmds.StringArg, hint="reason", ULib.cmds.optional, ULib.cmds.takeRestOfLine, completes=ulx.common_kick_reasons }
@@ -487,21 +508,6 @@ local dban = ulx.command( "Custom", "ulx dban", ulx.dban, "!dban" )
 dban:defaultAccess( ULib.ACCESS_ADMIN )
 dban:help( "Open the disconnected players menu" )
 
-function ulx.skick( calling_ply, target_ply, reason )
-	if reason and reason ~= "" then
-		ulx.fancyLogAdmin( calling_ply, true, "#A kicked #T (#s)", target_ply, reason )
-	else
-		reason = nil
-		ulx.fancyLogAdmin( calling_ply, true, "#A kicked #T", target_ply )
-	end
-	ULib.kick( target_ply, reason, calling_ply )
-end
-local skick = ulx.command( "Custom", "ulx skick", ulx.skick, "!skick" )
-skick:addParam{ type=ULib.cmds.PlayerArg }
-skick:addParam{ type=ULib.cmds.StringArg, hint="reason", ULib.cmds.optional, ULib.cmds.takeRestOfLine, completes=ulx.common_kick_reasons }
-skick:defaultAccess( ULib.ACCESS_ADMIN )
-skick:help( "Kicks target." )
-
 CreateConVar( "ulx_hide_notify_superadmins", 0 )
 
 function ulx.hide( calling_ply, command )
@@ -528,21 +534,14 @@ function ulx.hide( calling_ply, command )
 	local prevecho = GetConVarNumber( "ulx_logecho" )
 	
 	game.ConsoleCommand( "ulx logecho 0\n" )
-	if IsValid(calling_ply) then
-		if strexc == false then
-			calling_ply:ConCommand( command )
-		else
-			string.gsub( newstr, "ulx ", "!" )
-			calling_ply:ConCommand( newstr )
-		end
+	
+	if strexc == false then
+		calling_ply:ConCommand( command )
 	else
-		if strexc == false then
-			game.ConsoleCommand( command )
-		else
-			string.gsub( newstr, "ulx ", "!" )
-			game.ConsoleCommand( newstr )
-		end
+		string.gsub( newstr, "ulx ", "!" )
+		calling_ply:ConCommand( newstr )
 	end
+	
 	timer.Simple( 0.25, function()
 		game.ConsoleCommand( "ulx logecho " .. prevecho .. "\n" )
 	end )
@@ -576,9 +575,9 @@ function ulx.administrate( calling_ply, should_revoke )
 	end
 	
 	if not should_revoke then
-		ULib.invisible( calling_ply, true, 255 )
+		ULib.invisible( calling_ply, true, 0 )
 	else
-		ULib.invisible( calling_ply, false, 255 )
+		ULib.invisible( calling_ply, false, 0 )
 	end
 	
 	if not should_revoke then
@@ -751,7 +750,7 @@ serverinfo:help( "Print server information." )
 function ulx.timescale( calling_ply, number, should_reset )
 
 	if not should_reset then
-	
+
 		if number <= 0.1 then
 			ULib.tsayError( calling_ply, "Cannot set the timescale at or below 0.1, doing so will cause instability." )
 			return
@@ -955,10 +954,7 @@ if ( SERVER ) then
 	end
 	
 	net.Receive( "RequestFiles", function( len, ply )
-		if not ucl.query(ply, "ulx watchlist") then
-			ULib.tsayError( ply, "You are not allowed to see watched players." )
-			return
-		end
+	
 		local files = file.Find( "watchlist/*", "DATA" )
 		
 		for k, v in pairs( files ) do	
@@ -976,10 +972,7 @@ if ( SERVER ) then
 	end )
 	
 	net.Receive( "RequestDeletion", function( len, ply )
-		if not ucl.query(ply, "ulx unwatch") then
-			ULib.tsayError( ply, "You are not allowed to remove from the watchlist." )
-			return
-		end
+	
 		local steamid = net.ReadString()
 		local name = net.ReadString()
 		

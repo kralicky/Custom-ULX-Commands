@@ -74,7 +74,7 @@ end
 
 
 function ulx.votegag( calling_ply, target_ply, minutes )
-	minutes = math.ceil(minutes)
+
 	if voteInProgress then
 	
 		ULib.tsayError( calling_ply, "There is already a vote in progress. Please wait for the current one to end.", true )
@@ -243,7 +243,7 @@ end
 
 
 function ulx.votemute( calling_ply, target_ply, minutes )
-	minutes = math.ceil(minutes)
+
 	if voteInProgress then
 	
 		ULib.tsayError( calling_ply, "There is already a vote in progress. Please wait for the current one to end.", true )

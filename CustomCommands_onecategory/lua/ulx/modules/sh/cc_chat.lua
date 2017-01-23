@@ -98,6 +98,44 @@ tsaycolor:addParam{ type=ULib.cmds.StringArg, hint="color", completes=ulx_tsay_c
 tsaycolor:defaultAccess( ULib.ACCESS_ADMIN )
 tsaycolor:help( "Send a message to everyone in the chat box with color." )
 
+function ulx.lowercase( calling_ply, target_ply, should_lower ) 
+
+	if not should_lower then -- If it's false
+		
+		target_ply:RemovePData( "lower_case" )
+		ulx.fancyLogAdmin( calling_ply, "#A removed force lower-case on #T", target_ply )
+
+	else
+
+		target_ply:SetPData( "lower_case", "true" )
+		ulx.fancyLogAdmin( calling_ply, "#A forced lower-case on #T", target_ply )
+
+	end
+
+end
+local lower = ulx.command( "Custom", "ulx lower", ulx.lowercase, "!lower" )
+lower:addParam{ type=ULib.cmds.PlayerArg }
+lower:addParam{ type=ULib.cmds.BoolArg, invisible=true }
+lower:defaultAccess( ULib.ACCESS_OPERATOR )
+lower:help( "Forces all text sent to be set to lower-case." )
+lower:setOpposite( "ulx unlower", { _, _, false }, "!unlower" )
+
+if SERVER then
+	
+	hook.Add( "PlayerSay", "To Lower Case", function( ply, text, bTeam )
+
+		if ply:GetPData( "lower_case" ) == "true" then 
+
+			text = string.lower( text )
+
+			return text
+
+		end
+		
+	end )
+
+end
+
 local seesasayAccess = "ulx seesasay"
 
 if SERVER then ULib.ucl.registerAccess( seesasayAccess, ULib.ACCESS_SUPERADMIN, "Ability to see 'ulx sasay'", "Other" ) end
@@ -139,10 +177,38 @@ function ulx.sasay( calling_ply, message )
 end
 local sasay = ulx.command( "Custom", "ulx sasay", ulx.sasay, "$", true, true )
 sasay:addParam{ type=ULib.cmds.StringArg, hint="message", ULib.cmds.takeRestOfLine }
-sasay:defaultAccess( ULib.ACCESS_SUPERADMIN )
+sasay:defaultAccess( ULib.ACCESS_ALL )
 sasay:help( "Send a message to currently connected superadmins." )
 
 ulx_csay_color_table = { "black", "white", "red", "blue", "green", "orange", "purple", "pink", "gray", "yellow" }
+
+local seedsayAccess = "ulx seedsay"
+if SERVER then ULib.ucl.registerAccess( seedsayAccess, { ULib.ACCESS_OPERATOR }, "Ability to see 'ulx dsay'", "Other" ) end -- Give operators access to see dsays echoes by default
+
+function ulx.dsay( calling_ply, message )
+
+	local format = "#P to Donors: #s"
+	
+	local players = player.GetAll()
+	for i=#players, 1, -1 do
+
+		local v = players[ i ]
+
+		if not ULib.ucl.query( v, seedsayAccess ) and v ~= calling_ply then 
+
+			table.remove( players, i )
+
+		end
+
+	end
+
+	ulx.fancyLog( players, format, calling_ply, message )
+
+end
+local dsay = ulx.command( "Custom", "ulx dsay", ulx.dsay, "%", true, true )
+dsay:addParam{ type=ULib.cmds.StringArg, hint="message", ULib.cmds.takeRestOfLine }
+dsay:defaultAccess( ULib.ACCESS_OPERATOR )
+dsay:help( "Send a message to currently connected donators." )
 
 function ulx.csaycolor( calling_ply, message, color )
 	
