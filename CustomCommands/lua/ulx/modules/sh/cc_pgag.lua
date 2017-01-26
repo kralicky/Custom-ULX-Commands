@@ -9,7 +9,8 @@ function ulx.pgag( calling_ply, target_plys, should_unpgag )
 		for k,v in pairs( target_plys ) do
 	
 			v:RemovePData( "permgagged" )
-		
+			
+			v.perma_gagged = false
 		end
 		
 		ulx.fancyLogAdmin( calling_ply, "#A un-permagagged #T ", target_plys )
@@ -19,7 +20,8 @@ function ulx.pgag( calling_ply, target_plys, should_unpgag )
 		for k,v in pairs( target_plys ) do
 	
 			v:SetPData( "permgagged", "true" )
-		
+			
+			v.perma_gagged = true
 		end
 	
 		ulx.fancyLogAdmin( calling_ply, "#A permanently gagged #T", target_plys )
@@ -38,7 +40,7 @@ pgag:setOpposite( "ulx unpgag", { _, _, true }, "!unpgag" )
 
 local function pgagHook( listener, talker )
 
-	if talker:GetPData( "permgagged" ) == "true" then
+	if talker.perma_gagged == true then
 	
 		return false
 		
@@ -68,9 +70,13 @@ end
 hook.Add( "PlayerDisconnected", "pgagdisconnect", pgagPlayerDisconnect )
 
 function pgaguserAuthed( ply )
-
-	if ply:GetPData( "permgagged" ) == "true" then
 	
+	local pdata = ply:GetPData( "permgagged" )
+	
+	if  pdata == "true" then
+		
+		ply.perma_gagged = true
+		
 		for k,v in pairs( player.GetAll() ) do
 		
 			if v:IsAdmin() then
@@ -80,6 +86,10 @@ function pgaguserAuthed( ply )
 			end
 			
 		end
+		
+	else 
+		
+		ply.perma_gagged = false	
 		
 	end
 	
