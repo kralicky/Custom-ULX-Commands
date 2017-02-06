@@ -134,16 +134,9 @@ function ulx.changeconvar( calling_ply, variable, value, should_silent )
 		return
 		
 	end
-	
-	if ( GetConVarNumber( variable ) == tonumber( value ) ) then
-	
-		ULib.tsayError( calling_ply, "ConVar " .. variable .. " is already set to " .. value .. "!" )
-		
-		return
-		
-	end
 
 	RunConsoleCommand( variable, value )
+	
 	
 	if should_silent then
 	

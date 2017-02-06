@@ -2,12 +2,13 @@
 --  This file holds menu related items  --
 ------------------------------------------
 
-function ulx.donate( calling_ply )
+-- Edit cc_cvars.lua for more information as to how this works.
 
-	calling_ply:SendLua([[gui.OpenURL( "]] .. GetConVarString("donate_url") .. [[" )]])
+function ulx.google( calling_ply, search )
+
+	calling_ply:SendLua( [[ gui.OpenURL( "]] .. GetConVarString( "google_url" ) .. [[" )]] )
 	
 end
-
-local donate = ulx.command( "Custom", "ulx donate", ulx.donate, "!donate" )
-donate:defaultAccess( ULib.ACCESS_ALL )
-donate:help( "View donation information." )
+local google = ulx.command( "Custom", "ulx google", ulx.google, "!google" )
+google:defaultAccess( ULib.ACCESS_ALL )
+google:help( "Opens Google." )

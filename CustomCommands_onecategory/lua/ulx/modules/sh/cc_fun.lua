@@ -1,6 +1,7 @@
 ------------------------------------
 --  This file holds fun commands  --
 ------------------------------------
+
 function ulx.explode( calling_ply, target_plys )
 
 	for k, v in pairs( target_plys ) do	
@@ -236,7 +237,7 @@ function ulx.frags_deaths( calling_ply, target_plys, number, should_deaths )
 	end
 	
 end
-local frags_deaths = ulx.command( "Custom", "ulx frags_deaths", ulx.frags_deaths, "!frags" )
+local frags_deaths = ulx.command( "Custom", "ulx frags", ulx.frags_deaths, "!frags" )
 frags_deaths:addParam{ type=ULib.cmds.PlayersArg }
 frags_deaths:addParam{ type=ULib.cmds.NumArg, hint="number" }
 frags_deaths:addParam{ type=ULib.cmds.BoolArg, invisible=true }
@@ -564,3 +565,5 @@ end
 local resetdata = ulx.command( "Custom", "ulx resetdata", ulx.resetdata )
 resetdata:addParam{ type=ULib.cmds.PlayerArg }
 resetdata:help( "Reset easter egg data." )
+
+

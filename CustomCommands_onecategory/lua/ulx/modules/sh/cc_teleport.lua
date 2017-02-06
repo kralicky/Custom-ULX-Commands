@@ -296,3 +296,19 @@ local warp = ulx.command( "Custom", "ulx warp", ulx.warp, "!warp" )
 warp:addParam{ type=ULib.cmds.StringArg, hint="name" }
 warp:defaultAccess( ULib.ACCESS_ADMIN )
 warp:help( "Warps to a set position" )
+
+function ulx.warpto( calling_ply, target_ply, name )
+	if ( not name[ 1 ] ) then return end
+	for k,v in pairs( savedPos ) do
+		if k == tostring( name[ 1 ] ) then
+			target_ply:SetPos( v )
+		end
+	end
+	
+	ulx.fancyLogAdmin( calling_ply, "#A warped #T to #s", target_ply, name )
+end
+local warpto = ulx.command( "Custom", "ulx warpto", ulx.warpto, "!warpto" )
+warpto:addParam{ type=ULib.cmds.PlayerArg }
+warpto:addParam{ type=ULib.cmds.StringArg, hint="name" }
+warp:defaultAccess( ULib.ACCESS_ADMIN )
+warp:help( "Warps a player to a set position." )

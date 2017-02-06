@@ -1,6 +1,6 @@
 function ulx.notepad( calling_ply )
 	if calling_ply:IsValid() then
-		calling_ply:ConCommand( "xgui hide" )	
+		calling_ply:ConCommand( "xgui hide" )
 		calling_ply:ConCommand( "notepad_open" )
 	end
 end

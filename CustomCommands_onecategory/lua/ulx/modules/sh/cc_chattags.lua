@@ -1,7 +1,8 @@
 -------------------------------------
 --  This file holds the chat tags  --
 -------------------------------------
-
+--[[
+/* This is disabled by default as it competes with other chat tags. Remove line 4 and the last line to enable. */
 if ( SERVER ) then
 
 	AddCSLuaFile( )
@@ -41,7 +42,7 @@ local function OnPlayerChat( ply, strText, bTeamOnly, bPlayerIsDead )
 		table.insert( tab, "*DEAD* " )
 		
 	end
-	
+	/* This causes issues with TTT. Leave disabled if on TTT.
 	if ( bTeamOnly ) then
 	
 		table.insert( tab, Color( 30, 160, 40 ) )
@@ -49,7 +50,8 @@ local function OnPlayerChat( ply, strText, bTeamOnly, bPlayerIsDead )
 		table.insert( tab, "(TEAM) " )
 		
 	end
-	
+	*/
+
 	if ( IsValid( ply ) ) then
 	
 		if ( ply.GetUserGroup ) then
@@ -100,3 +102,4 @@ end
 hook.Add( "OnPlayerChat", "Tags.OnPlayerChat", OnPlayerChat )
 
 end --End clientside 
+]]
