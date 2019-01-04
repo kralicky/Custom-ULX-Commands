@@ -1,7 +1,7 @@
-local version = "1.5.17"
+local version = "1.3.19"
 http.Fetch("http://raw.githubusercontent.com/jkralicky/Custom-ULX-Commands/master/version.txt", function( body, len, headers, code)
   local nversion = body
-  if nversion != version then 
-    chat.AddText(Color(0,191,255), "[ULX-Custom-Commands]", color_white, ": A new version is available on GitHub.")
+  if nversion != version then
+    MsgC(Color(0,191,255), "[ULX-Custom-Commands]", color_white, ": A new version is available on GitHub.\n")
   end
 end)

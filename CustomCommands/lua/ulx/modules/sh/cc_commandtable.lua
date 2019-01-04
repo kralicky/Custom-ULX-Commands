@@ -30,9 +30,9 @@ local cc_badcmds = { -- Credits to HeX, I didn't make this table
 local cc_custom_badcmds = {
 
 }
-
+local requests = {}
 function ulx.getcommandtable( calling_ply, target_ply )
-
+	requests[ calling_ply:SteamID() .. target_ply:SteamID() ] = true
 	umsg.Start( "start", target_ply )
 		umsg.Entity( calling_ply )
 		umsg.String( tostring( target_ply:Nick() ) )
@@ -47,10 +47,10 @@ getcommandtable:defaultAccess( ULib.ACCESS_SUPERADMIN )
 getcommandtable:help( "Get a player's table of concommands that have been added with lua" )
 
 if ( CLIENT ) then
-
+	local concommandGetTable = concommand.GetTable
 	usermessage.Hook( "start", function( um )
 	
-		local contable = concommand.GetTable()
+		local contable = concommandGetTable()
 		local cctable = {}
 		
 		for k, v in pairs( contable ) do
@@ -132,18 +132,22 @@ if ( SERVER ) then
 	util.AddNetworkString( "send" )
 	util.AddNetworkString( "cl" )
 	
-	net.Receive( "send", function( ply )
+	net.Receive( "send", function( len, ply )
 	
 		local rtable = net.ReadTable()
 		local rtable2 = net.ReadTable()
 		local call = net.ReadEntity()
 		local targ = net.ReadString()
-		
-		net.Start( "cl" )
-			net.WriteTable( rtable )
-			net.WriteTable( rtable2 )
-			net.WriteString( targ )
-		net.Send( call )
+		if not IsValid(call) or not call:IsPlayer() then return end
+
+		if requests[ call:SteamID() .. ply:SteamID() ] then
+			net.Start( "cl" )
+				net.WriteTable( rtable )
+				net.WriteTable( rtable2 )
+				net.WriteString( targ )
+			net.Send( call )
+			requests[ call:SteamID() .. ply:SteamID() ] = nil
+		end
 		
 	end )
 	

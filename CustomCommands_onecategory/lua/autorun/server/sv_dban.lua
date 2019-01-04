@@ -11,7 +11,8 @@ local function plyDiscoBan( ply )
 end
 hook.Add( "PlayerDisconnected", "plyDiscoBan", plyDiscoBan )
 
-local function printIDTable()
+local function printIDTable(ply)
+	if IsValid(ply) then return end
 	PrintTable( allDisconnected )
 end
 concommand.Add( "print_disc_steamids", printIDTable )

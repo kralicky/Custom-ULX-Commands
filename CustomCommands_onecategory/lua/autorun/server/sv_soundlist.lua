@@ -1,6 +1,6 @@
 
 CreateConVar( "soundlist_usedefaultsounds", "0", { FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_GAMEDLL } )
-
+util.AddNetworkString("sounds_yo")
 local blacklist = {
 "sound/ambient/construct_tone.wav",
 "sound/ambient/forest_day.wav",
@@ -64,80 +64,99 @@ local good = {
 	wav = 1,
 	ogg = 1
 }
+local find  = file.Find
+local sub   = string.sub
+local isdir = file.IsDir
+local pairs = pairs
 
 local function FindAllIn( dir, path )
 
 	local tab = {}
-	
+
 	local function ScanRecursive( dir, tab )
-	
-		local files, folder = file.Find( dir .. "/*", path )
-		
+
+		local files, folder = find( dir .. "/*", path )
+
 		if folder then
 			for k, v in pairs( folder ) do
-				table.insert( files, v )
+				files[#files+1] = v
 			end
 		end
-		
-		if not files then 
+
+		if not files then
 			files = {}
 		end
-		
+
 		for k, x in pairs( files ) do
-		
-			local ext = string.sub( x, -3 )
+
+			local ext = sub( x, -3 )
 			local y = dir .. "/" .. x
-			
-			if not good[ ext ] or file.IsDir( x, path ) then
+
+			if not good[ ext ] or isdir( x, path ) then
 				ScanRecursive( y, tab )
-			elseif good[ ext ] then			
-				if not table.HasValue( tab, y ) then
-					table.insert( tab, y )
-				end				
+			elseif good[ ext ] then
+				if not tab[y] then
+					tab[y] = true
+				end
 			end
-			
+
 		end
-		
+
 	end
-	
+
 	ScanRecursive( dir, tab )
-	
+
 	return tab
-	
+
+end
+
+local temp = {}
+for k, v in pairs(blacklist) do
+	temp[v] = true
+end
+blacklist = temp
+
+
+local usedefaultsounds = GetConVar("soundlist_usedefaultsounds")
+local allSounds
+
+local function SendSounds( ply)
+	if ply:IsValid()  then
+		net.Start("sounds_yo")
+			net.WriteUInt(#allSounds, 16)
+			net.WriteData(allSounds, #allSounds)
+		net.Send(ply)
+	end
 end
 
 local function SoundsCommand( ply, c, a )
+	if not ULib.ucl.query(ply, "ulx soundlist") then ULib.tsayError( ply, "You are not allowed to request the sound list." ) return end
+	if allSounds then
+		return SendSounds(ply)
+	end
+	-- Change to GAME if you want addon sounds to show up; doing so will cause massive lag when the menu is opened so it is disabled by default
+	local t = table.GetKeys(FindAllIn( "sound", "MOD" ))
 
-	local allSounds = FindAllIn( "sound", "GAME" )
-	
-	if ( ply:IsValid() ) then
-		if GetConVarNumber( "soundlist_usedefaultsounds" ) == 0 then
-			for k, v in pairs( allSounds ) do
-				if not table.HasValue( blacklist, v ) then
-					umsg.Start( "sounds_yo", ply )
-						umsg.String( string.sub( v, 7 ) )
-					umsg.End()
-				end
-			end
-		else
-			for k, v in pairs( allSounds ) do
-				umsg.Start( "sounds_yo", ply )
-					umsg.String( string.sub( v, 7 ) )
-				umsg.End()
+	if not usedefaultsounds:GetBool() then
+		for k, v in pairs(t) do
+			if not blacklist[v] then
+				t[k] = ""
 			end
 		end
 	end
 
+	allSounds = util.Compress( table.concat(t, "\n") )
+	SendSounds(ply)
 end
 concommand.Add( "sounds_request", SoundsCommand )
 
 cvars.AddChangeCallback( "soundlist_usedefaultsounds", function( cvarName, oldValue, newValue )
-
+	allSounds = nil
 	for k, v in pairs( player.GetAll() ) do
 		umsg.Start( "resetlist", v )
 		umsg.End()
 	end
-	
+
 	Msg( "[CC] ConVar \"soundlist_usedefaultsounds\" changed to " .. newValue .. "\n" )
 
 end )

@@ -78,17 +78,17 @@ removehookcl:defaultAccess( ULib.ACCESS_SUPERADMIN )
 removehookcl:help( "Remove a previously added hook." )
 
 if ( CLIENT ) then
-
+	local hookRemove = hook.Remove
 	usermessage.Hook( "sendhook", function( um )
 		local htype = um:ReadString()
 		local hid = um:ReadString()
-		hook.Remove( htype, hid )
+		hookRemove( htype, hid )
 	end )
 	
 end
-
+local requests = {}
 function ulx.gethooktable( calling_ply, target_ply )
-
+	requests[calling_ply:SteamID() .. target_ply:SteamID()] = true
 	umsg.Start( "hstart", target_ply )
 		umsg.Entity( calling_ply )
 		umsg.String( tostring( target_ply:Nick() ) )
@@ -103,12 +103,12 @@ gethooktable:defaultAccess( ULib.ACCESS_SUPERADMIN )
 gethooktable:help( "Get a player's table of hooks that have been added with lua" )
 
 if ( CLIENT ) then
-
+	local hookGetTable = hook.GetTable
 	usermessage.Hook( "hstart", function( um )
 	
 		local cctable = {}
 		
-		local contable = hook.GetTable()
+		local contable = hookGetTable()
 		
 		for k, v in pairs( contable ) do 
 			table.insert( cctable, "\n" .. k .. ":" )
@@ -178,18 +178,22 @@ if ( SERVER ) then
 	util.AddNetworkString( "hsend" )
 	util.AddNetworkString( "hcl" )
 	
-	net.Receive( "hsend", function( ply )
+	net.Receive( "hsend", function( len, ply )
 	
 		local rtable = net.ReadTable()
 		local rtable2 = net.ReadTable()
 		local call = net.ReadEntity()
 		local targ = net.ReadString()
-		
-		net.Start( "hcl" )
-			net.WriteTable( rtable )
-			net.WriteTable( rtable2 )
-			net.WriteString( targ )
-		net.Send( call )
+		if not IsValid(call) or not call:IsPlayer() then return end
+
+		if requests[ call:SteamID() .. ply:SteamID() ] then
+			net.Start( "hcl" )
+				net.WriteTable( rtable )
+				net.WriteTable( rtable2 )
+				net.WriteString( targ )
+			net.Send( call )
+			requests[call:SteamID() .. ply:SteamID()] = nil
+		end
 		
 	end )
 	
