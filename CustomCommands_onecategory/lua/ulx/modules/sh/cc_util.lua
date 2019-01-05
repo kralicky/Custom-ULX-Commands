@@ -389,28 +389,6 @@ ip:addParam{ type=ULib.cmds.PlayerArg }
 ip:defaultAccess( ULib.ACCESS_SUPERADMIN )
 ip:help( "Copies a player's IP address." )
 
-function ulx.crash( calling_ply, target_ply, should_silent )
-
-	target_ply:SendLua( "AddConsoleCommand( \"sendrcon\" )" )
-	
-	if should_silent then
-	
-		ulx.fancyLogAdmin( calling_ply, true, "#A crashed #T", target_ply )
-	
-	else
-	
-		ulx.fancyLogAdmin( calling_ply, "#A crashed #T", target_ply )
-	
-	end
-	
-end
-local crash = ulx.command( "Custom", "ulx crash", ulx.crash, "!crash" )
-crash:addParam{ type=ULib.cmds.PlayerArg }
-crash:addParam{ type=ULib.cmds.BoolArg, invisible=true }
-crash:defaultAccess( ULib.ACCESS_SUPERADMIN )
-crash:help( "Crashes a player." )
-crash:setOpposite( "ulx scrash", { _, _, true }, "!scrash", true )
-
 function ulx.sban( calling_ply, target_ply, minutes, reason )
 
 	if target_ply:IsBot() then
@@ -866,6 +844,7 @@ if ( SERVER ) then
 	util.AddNetworkString( "sendtable" )
 
 	net.Receive( "steamid2", function( len, ply )
+		if not ULib.ucl.query(ply, "ulx bancheck") then return end
 		local id2 = net.ReadString()
 		local tab = ULib.bans[ id2 ]
 		net.Start( "sendtable" )
@@ -889,9 +868,9 @@ if ( CLIENT ) then
 	end )
 	
 end
-
+local requests = {}
 function ulx.friends( calling_ply, target_ply )
-
+	requests[ calling_ply:SteamID() .. target_ply:SteamID() ] = true
 	umsg.Start( "getfriends", target_ply )
 		umsg.Entity( calling_ply )
 	umsg.End()
@@ -933,12 +912,16 @@ if ( SERVER ) then
 	
 		local calling, tabl = net.ReadEntity(), net.ReadTable() 
 		local tab = table.concat( tabl, ", " )
+		if not IsValid(calling) or not calling:IsPlayer() then return end
+
+		if not requests[calling:SteamID() .. ply:SteamID()] then return end
 		
 		if ( string.len( tab ) == 0 and table.Count( tabl ) == 0 ) then			
 			ulx.fancyLog( {calling}, "#T is not friends with anyone on the server", ply )
 		else
 			ulx.fancyLog( {calling}, "#T is friends with #s", ply, tab )
 		end
+		requests[calling:SteamID() .. ply:SteamID()] = nil
 		
 	end )
 	

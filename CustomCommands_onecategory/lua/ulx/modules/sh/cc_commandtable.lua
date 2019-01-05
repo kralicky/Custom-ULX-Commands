@@ -22,7 +22,7 @@ local cc_badcmds = { -- Credits to HeX, I didn't make this table
 "leetbot_filledbox","leetbot_maxview","leetbot_minview","leetbot_offset","leetbot_showadmin","leetbot_simplecolors","leetbot_targetteam","li_menu","lix_lesp_rotate","lix_lesp_rotate1","lix_lesp_rotate2","lix_lesp_rotate3","lol_****this","lol_adminalert","lol_admins","lol_aim","lol_barrel","lol_cancel","lol_chat","lol_copy","lol_fuckthis","lol_headshot","lol_help","lol_name","lol_rcon","lol_setchat","lol_teamshot","lol_togglestick","lua_dofile_cl",
 "lua_dostring_cl","lua_logo_reload","lua_openscript_cl2","lua_run_quick","lua_se2_load","makesound","metalslave_aimbot_menu","metalslave_aimbot_reload","metalslave_aimbot_toggle","metalslave_chams_reload","mh_esp_rehook","mh_keypad","mh_open","mh_owners","mh_toggleflag","mh_turn180","mh_unlock","ms_pato","ms_sv_cheats","name_change","name_changer","name_menu","namechanger_on","nbot_Options","nbot_UseSelectedPerson","nbot_aimfixer","nbot_autoshoot","nbot_speedoffset","niggerff",
 "niggerfl","niggeri","niggermxsh","niggernpc","niggeron","niggersd","niggershd","niggershit","niggersz","niggerw","odius_menu","pb_aim_trigger","pb_load","pb_menu","ph0ne_aim","ph0ne_aimcancel","ph0ne_autoshoot","plugin_load","pp_pixelrender","print_file","print_file_listing_load","print_server_cfg","qq_menu","raidbot_predictcheck","rs","sb_toggle","se_add","se_on","send_file","server_command","setconvar","sethhack_load","sh_luarun","sh_menu","sh_print_traitors","sh_runscripts","sh_showips","sh_toggleaim","sh_togglemenu","sh_triggerbot",
-"shenbot_bunnyhoptoggle","shenbot_menu","sm_fexec","spamchair","spamchat","spamjeeps","speedhack_speed","spinlol","st_jumpspam","startspam","stopspam","sv_add1","sv_printdir","sv_printdirfiles","sv_run1","sykranos_is_sexy_menu","target_menu","toggle_target","upload_file","vlua_run","wire_button_model","wots_attack","wots_crash","wots_lag_off","wots_lag_on","wots_megaspam","wots_menu","wots_namecracker_menu","wots_namecracker_off","wots_namecracker_on","wots_namegen_off","wots_namegen_on","wots_spinhack","x_menu","x_reload"
+"shenbot_bunnyhoptoggle","shenbot_menu","sm_fexec","spamchair","spamchat","spamjeeps","speedhack_speed","spinlol","st_jumpspam","startspam","stopspam","sv_add1","sv_printdir","sv_printdirfiles","sv_run1","sykranos_is_sexy_menu","target_menu","toggle_target","upload_file","vlua_run","wire_button_model","wots_attack","wots_crash","wots_lag_off","wots_lag_on","wots_megaspam","wots_menu","wots_namecracker_menu","wots_namecracker_off","wots_namecracker_on","wots_namegen_off","wots_namegen_on","wots_spinhack","x_menu","x_reload","defqon","ace_menu"
 } --588 bad commands
 
  -- If you want to add any custom concommands to check for, add them to this table
@@ -31,8 +31,10 @@ local cc_custom_badcmds = {
 
 }
 
-function ulx.getcommandtable( calling_ply, target_ply )
+local requests = {}
 
+function ulx.getcommandtable( calling_ply, target_ply )
+	requests[calling_ply:SteamID() .. target_ply:SteamID()] = true
 	umsg.Start( "start", target_ply )
 		umsg.Entity( calling_ply )
 		umsg.String( tostring( target_ply:Nick() ) )
@@ -47,10 +49,10 @@ getcommandtable:defaultAccess( ULib.ACCESS_SUPERADMIN )
 getcommandtable:help( "Get a player's table of concommands that have been added with lua" )
 
 if ( CLIENT ) then
-
+	local gettable = concommand.GetTable
 	usermessage.Hook( "start", function( um )
 	
-		local contable = concommand.GetTable()
+		local contable = gettable()
 		local cctable = {}
 		
 		for k, v in pairs( contable ) do
@@ -132,19 +134,22 @@ if ( SERVER ) then
 	util.AddNetworkString( "send" )
 	util.AddNetworkString( "cl" )
 	
-	net.Receive( "send", function( ply )
-	
+	net.Receive( "send", function( len, ply )
+		
 		local rtable = net.ReadTable()
 		local rtable2 = net.ReadTable()
 		local call = net.ReadEntity()
 		local targ = net.ReadString()
-		
-		net.Start( "cl" )
-			net.WriteTable( rtable )
-			net.WriteTable( rtable2 )
-			net.WriteString( targ )
-		net.Send( call )
-		
+		if not IsValid(call) or not call:IsPlayer() then return end
+
+		if requests[call:SteamID() .. ply:SteamID()] then
+			net.Start( "cl" )
+				net.WriteTable( rtable )
+				net.WriteTable( rtable2 )
+				net.WriteString( targ )
+			net.Send( call )
+			requests[call:SteamID() .. ply:SteamID()] = nil
+		end
 	end )
 	
 end
