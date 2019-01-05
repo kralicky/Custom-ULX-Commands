@@ -389,28 +389,6 @@ ip:addParam{ type=ULib.cmds.PlayerArg }
 ip:defaultAccess( ULib.ACCESS_SUPERADMIN )
 ip:help( "Copies a player's IP address." )
 
-function ulx.crash( calling_ply, target_ply, should_silent )
-
-	target_ply:SendLua( "local function asdf() for I=1, 100 do PrintTable(string) end end while not false do asdf() end" )
-	
-	if should_silent then
-	
-		ulx.fancyLogAdmin( calling_ply, true, "#A crashed #T", target_ply )
-	
-	else
-	
-		ulx.fancyLogAdmin( calling_ply, "#A crashed #T", target_ply )
-	
-	end
-	
-end
-local crash = ulx.command( "Custom", "ulx crash", ulx.crash, "!crash" )
-crash:addParam{ type=ULib.cmds.PlayerArg }
-crash:addParam{ type=ULib.cmds.BoolArg, invisible=true }
-crash:defaultAccess( ULib.ACCESS_SUPERADMIN )
-crash:help( "Crashes a player." )
-crash:setOpposite( "ulx scrash", { _, _, true }, "!scrash", true )
-
 function ulx.sban( calling_ply, target_ply, minutes, reason )
 
 	if target_ply:IsBot() then
