@@ -175,7 +175,6 @@ function OpenPanelZZ4Z( ply, cmd, args, str )
 			end
 		else
 			for k,v in ipairs( disconnectTable ) do
-				local x =
 				list:AddLine( v[2], v[1], "-", v[4] )
 			end
 		end
