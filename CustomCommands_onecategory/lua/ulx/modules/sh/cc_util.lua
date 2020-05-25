@@ -938,7 +938,7 @@ if ( SERVER ) then
 	end
 	
 	net.Receive( "RequestFiles", function( len, ply )
-		if not ucl.query(ply, "ulx watchlist") then
+		if not ULib.ucl.query(ply, "ulx watchlist") then
 			ULib.tsayError( ply, "You are not allowed to see watched players." )
 			return
 		end
@@ -959,7 +959,7 @@ if ( SERVER ) then
 	end )
 	
 	net.Receive( "RequestDeletion", function( len, ply )
-		if not ucl.query(ply, "ulx unwatch") then
+		if not ULib.ucl.query(ply, "ulx unwatch") then
 			ULib.tsayError( ply, "You are not allowed to remove from the watchlist." )
 			return
 		end
