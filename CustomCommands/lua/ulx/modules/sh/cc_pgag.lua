@@ -38,6 +38,38 @@ pgag:defaultAccess( ULib.ACCESS_ADMIN )
 pgag:help( "Gag target(s), disables microphone using pdata." )
 pgag:setOpposite( "ulx unpgag", { _, _, true }, "!unpgag" )
 
+
+
+function ulx.pgagid(calling_ply, steamID, should_unpgag)
+	if should_unpgag then
+		util.RemovePData(steamID, "permgagged")
+		local ply = player.GetBySteamID(steamID)
+		if(ply) then
+			ply.perma_gagged = false
+		end
+
+		ulx.fancyLogAdmin(calling_ply, "#A un-permagagged #s", steamID)
+	else
+		util.SetPData(steamID, "permgagged", "true")
+		local ply = player.GetBySteamID(steamID)
+		if(ply) then
+			ply.perma_gagged = true
+		end
+
+		ulx.fancyLogAdmin(calling_ply, "#A permanently gagged #s", steamID)
+	end
+end
+
+local pgagid = ulx.command( "Chat", "ulx pgagid", ulx.pgagid, "!pgagid" )
+pgagid:addParam{ type=ULib.cmds.StringArg, hint="steamid" }
+pgagid:addParam{ type=ULib.cmds.BoolArg, invisible=true }
+pgagid:defaultAccess( ULib.ACCESS_ADMIN )
+pgagid:help("Permanently gag target Steam ID, disabling their microphone.")
+pgagid:setOpposite("ulx unpgagid", { _, _, true }, "!unpgagid")
+
+
+
+
 local function pgagHook( listener, talker )
 
 	if talker.perma_gagged == true then
@@ -118,4 +150,4 @@ function ulx.printpgags( calling_ply )
 end
 local printpgags = ulx.command( "Chat", "ulx printpgags", ulx.printpgags, "!printpgags", true )
 printpgags:defaultAccess( ULib.ACCESS_ADMIN )
-printpgags:help( "Prints players who are pgagged." )
+printpgags:help("Lists any players connected to the server who are permanently gagged.")
