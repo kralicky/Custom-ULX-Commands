@@ -913,121 +913,130 @@ end
 
 if ( SERVER ) then
 
-	util.AddNetworkString( "RequestFiles" )
-	util.AddNetworkString( "RequestFilesCallback" )
-	util.AddNetworkString( "RequestDeletion" )
-	
+	util.AddNetworkString("Watchlist_Open")
+	util.AddNetworkString("Watchlist_RequestWatchedPlayers")
+	util.AddNetworkString("Watchlist_RequestWatchedPlayersCallback")
+	util.AddNetworkString("Watchlist_RequestDeletion")
+
 	if not file.Exists( "watchlist", "DATA" ) then
 		file.CreateDir( "watchlist" )
 	end
-	
-	net.Receive( "RequestFiles", function( len, ply )
+
+	WatchlistData = {
+		GetFilePath = function(steamID)
+			local filename = (steamID:gsub(":", "x") .. ".txt"):lower()
+			return "watchlist/" .. filename
+		end,
+
+		AddPlayer = function(steamID, playerName, adminName, reason)
+			local filePath = WatchlistData.GetFilePath(steamID)
+
+			file.Write(filePath, "") -- Removes existing watch reason
+
+			file.Append(filePath, playerName .. "\n")
+			file.Append(filePath, adminName .. "\n")
+			file.Append(filePath, string.Trim(reason) .. "\n")
+			file.Append(filePath, os.date("%m/%d/%y %H:%M") .. "\n")
+		end,
+
+		IsPlayerOnWatchlist = function(steamID)
+			return file.Exists(WatchlistData.GetFilePath(steamID), "DATA")
+		end,
+
+		RemovePlayer = function(steamID)
+			file.Delete(WatchlistData.GetFilePath(steamID))
+		end,
+
+		GetAllWatchedPlayers = function()
+			local watchedPlayers = {}
+
+			local files = file.Find("watchlist/*", "DATA")
+			for k, filename in pairs(files) do
+				local watchInfoRaw = file.Read("watchlist/" .. filename, "DATA")
+				local watchInfo = string.Explode("\n", watchInfoRaw)
+
+				table.insert(watchedPlayers, {
+					SteamID = filename:gsub(".txt", ""):gsub("x", ":"):upper(),
+					PlayerName = watchInfo[1],
+					AdminName = watchInfo[2],
+					Reason = watchInfo[3],
+					DateTime = watchInfo[4]
+				})
+			end
+
+			return watchedPlayers
+		end
+	}
+
+	net.Receive("Watchlist_RequestWatchedPlayers", function(len, ply)
 		if not ULib.ucl.query(ply, "ulx watchlist") then
 			ULib.tsayError( ply, "You are not allowed to see who is on the watchlist" )
 			return
 		end
-		local files = file.Find( "watchlist/*", "DATA" )
-		
-		for k, v in pairs( files ) do	
-		
-			local r = file.Read( "watchlist/" .. v, "DATA" )
-			local exp = string.Explode( "\n", r )
-			
-			net.Start( "RequestFilesCallback" )
-				net.WriteString( v )
-				net.WriteTable( exp )
-			net.Send( ply )
-			
-		end
-		
-	end )
+
+		local watchedPlayers = WatchlistData.GetAllWatchedPlayers()
+
+		local payload = util.Compress(util.TableToJSON(watchedPlayers))
+		net.Start("Watchlist_RequestWatchedPlayersCallback")
+			net.WriteUInt(string.len(payload), 32)
+			net.WriteData(payload, string.len(payload))
+		net.Send(ply)
+	end)
 	
-	net.Receive( "RequestDeletion", function( len, ply )
+	net.Receive("Watchlist_RequestDeletion", function(len, ply)
 		if not ULib.ucl.query(ply, "ulx unwatch") then
 			ULib.tsayError( ply, "You are not allowed to remove players from watchlist." )
 			return
 		end
+
 		local steamid = net.ReadString()
-		local name = net.ReadString()
 		
-		if file.Exists( "watchlist/" .. steamid:gsub( ":", "X" ) .. ".txt", "DATA" ) then
-			file.Delete( "watchlist/" .. steamid:gsub( ":", "X" ) .. ".txt" )
+		if WatchlistData.IsPlayerOnWatchlist(steamid) then
+			WatchlistData.RemovePlayer(steamid)
+			ulx.fancyLogAdmin(ply, true, "#A removed #s from the watchlist", steamid)
+		else
+			ULib.tsayError(ply, steamid .. " is not on the watchlist." )
 		end
-		
-		for k, v in pairs( player.GetAll() ) do
-			if v:IsSuperAdmin() or v == ply then
-				ulx.fancyLog( {v}, "(SILENT) #s removed #s (#s) from the watchlist", ply:Nick(), name, steamid )
+	end)
+	
+	hook.Add("PlayerInitialSpawn", "CheckWatchedPlayers", function(ply)
+		if(WatchlistData.IsPlayerOnWatchlist(ply:SteamID()) == false) then return end
+
+		for k, otherPlayer in pairs( player.GetHumans()) do
+			if otherPlayer:IsAdmin() then
+				ULib.tsayError(otherPlayer, ply:Nick() .. " (" .. ply:SteamID() .. ") has joined the server and is on the watchlist!" )
 			end
 		end
-		
-	end )
+	end)
 	
-	hook.Add( "PlayerInitialSpawn", "CheckWatchedPlayers", function( ply )
-	
-		local files = file.Find( "watchlist/*", "DATA" )
-		
-		for k, v in pairs( files ) do
-			if ply:SteamID() == string.sub( v:gsub( "X", ":" ), 1, -5 ) then
-				for q, w in pairs( player.GetAll() ) do
-					if w:IsAdmin() then
-						ULib.tsayError( w, ply:Nick() .. " (" .. ply:SteamID() .. ") has joined the server and is on the watchlist!" )
-					end
-				end
+	hook.Add("PlayerDisconnected", "CheckWatchedPlayersDC", function(ply)
+		if(WatchlistData.IsPlayerOnWatchlist(ply:SteamID()) == false) then return end
+
+		for k, otherPlayer in pairs( player.GetHumans()) do
+			if otherPlayer:IsAdmin() then
+				ULib.tsayError(otherPlayer, ply:Nick() .. " (" .. ply:SteamID() .. ") has left the server and is on the watchlist!" )
 			end
 		end
-		
-	end )
-	
-	hook.Add( "PlayerDisconnected", "CheckWatchedPlayersDC", function( ply )
-	
-		local files = file.Find( "watchlist/*", "DATA" )
-		
-		for k, v in pairs( files ) do
-			if ply:SteamID() == string.sub( v:gsub( "X", ":" ), 1, -5 ) then
-				for q, w in pairs( player.GetAll() ) do
-					if w:IsAdmin() then
-						ULib.tsayError( w, ply:Nick() .. " (" .. ply:SteamID() .. ") has left the server and is on the watchlist!" )
-					end
-				end
-			end
-		end
-		
-	end )
-	
+	end)
 end
 
 function ulx.watch( calling_ply, target_ply, reason, should_unwatch )
+	local targetSteamID = target_ply:SteamID()
+	local targetPlayerName = target_ply:Nick()
 
-	local id = string.gsub( target_ply:SteamID(), ":", "X" )
-	
-	if not should_unwatch then
-	
-		if not file.Exists( "watchlist/" .. id .. ".txt", "DATA" ) then
-			file.Write( "watchlist/" .. id .. ".txt", "" )
+	if should_unwatch then
+		if WatchlistData.IsPlayerOnWatchlist(targetSteamID) then
+			WatchlistData.RemovePlayer(targetSteamID)
+			ulx.fancyLogAdmin(calling_ply, true, "#A removed #T from the watchlist", target_ply)
 		else
-			file.Delete( "watchlist/" .. id .. ".txt" )
-			file.Write( "watchlist/" .. id .. ".txt", "" )
+			ULib.tsayError(calling_ply, targetPlayerName .. " is not on the watchlist.")
 		end
-		
-		file.Append( "watchlist/" .. id .. ".txt", target_ply:Nick() .. "\n" )
-		file.Append( "watchlist/" .. id .. ".txt", calling_ply:Nick() .. "\n" )
-		file.Append( "watchlist/" .. id .. ".txt", string.Trim( reason ) .. "\n" )
-		file.Append( "watchlist/" .. id .. ".txt", os.date( "%m/%d/%y %H:%M" ) .. "\n" )
-		
-		ulx.fancyLogAdmin( calling_ply, true, "#A added #T to the watchlist (#s)", target_ply, reason )
-		
 	else
-	
-		if file.Exists( "watchlist/" .. id .. ".txt", "DATA" ) then
-			file.Delete( "watchlist/" .. id .. ".txt" )
-			ulx.fancyLogAdmin( calling_ply, true, "#A removed #T from the watchlist", target_ply )			
-		else
-			ULib.tsayError( calling_ply, target_ply:Nick() .. " is not on the watchlist." )
-		end
-		
+		WatchlistData.AddPlayer(targetSteamID, targetPlayerName, calling_ply:Nick(), reason)
+		ulx.fancyLogAdmin(calling_ply, true, "#A added #T to the watchlist (#s)", target_ply, reason)
 	end
-	
 end
+
 local watch = ulx.command( "Utility", "ulx watch", ulx.watch, "!watch", true )
 watch:addParam{ type=ULib.cmds.PlayerArg }
 watch:addParam{ type=ULib.cmds.StringArg, hint="reason", ULib.cmds.takeRestOfLine }
@@ -1036,26 +1045,43 @@ watch:defaultAccess( ULib.ACCESS_ADMIN )
 watch:help( "Watch or unwatch a player" )
 watch:setOpposite( "ulx unwatch", { _, _, false, true }, "!unwatch", true )
 
+
+
+
 function ulx.watchlist( calling_ply )
-	
 	if calling_ply:IsValid() then
-		umsg.Start( "open_watchlist", calling_ply )
-		umsg.End()
+		net.Start("Watchlist_Open")
+		net.Send(calling_ply)
 	end
-	
 end
 local watchlist = ulx.command( "Utility", "ulx watchlist", ulx.watchlist, "!watchlist", true )
 watchlist:defaultAccess( ULib.ACCESS_ADMIN )
 watchlist:help( "View the watchlist" )
 
+
+
 if ( CLIENT ) then
 
-	local tab = {}
+	local WatchlistUIList = nil
 	
-	usermessage.Hook( "open_watchlist", function()
-		
+	net.Receive("Watchlist_RequestWatchedPlayersCallback", function()
+		local length = net.ReadUInt(32)
+		local dataCompressed = net.ReadData(length)
+
+		local watchedPlayers = util.JSONToTable(util.Decompress(dataCompressed))
+
+		if(WatchlistUIList != nil) then
+			WatchlistUIList:Clear()
+
+			for k, watchedPlayer in pairs(watchedPlayers) do
+				WatchlistUIList:AddLine(watchedPlayer.SteamID, watchedPlayer.PlayerName, watchedPlayer.AdminName, watchedPlayer.Reason, watchedPlayer.DateTime)
+			end
+		end
+	end)
+
+
+	local function RenderWatchlist()
 		local main = vgui.Create( "DFrame" )	
-	
 			main:SetPos( 50,50 )
 			main:SetSize( 700, 400 )
 			main:SetTitle( "Watchlist" )
@@ -1065,126 +1091,95 @@ if ( CLIENT ) then
 			main:MakePopup()
 			main:Center()
 
-		local list = vgui.Create( "DListView", main )
-			list:SetPos( 4, 27 )
-			list:SetSize( 692, 369 )
-			list:SetMultiSelect( false )
-			list:AddColumn( "SteamID" )
-			list:AddColumn( "Name" )
-			list:AddColumn( "Admin" )
-			list:AddColumn( "Reason" )
-			list:AddColumn( "Time" )
+		function main:OnClose()
+			WatchlistUIList = nil
+		end
 
-			net.Start( "RequestFiles" )
-			net.SendToServer()
-			
-			net.Receive( "RequestFilesCallback", function()
-			
-				table.Empty( tab )
-				
-				local name = net.ReadString()
-				local toIns = net.ReadTable()
-				
-				table.insert( tab, { name:gsub( "X", ":" ):sub( 1, -5 ), toIns[ 1 ], toIns[ 2 ], toIns[ 3 ], toIns[ 4 ] } )
-				
-				for k, v in pairs( tab ) do
-					list:AddLine( v[ 1 ], v[ 2 ], v[ 3 ], v[ 4 ], v[ 5 ] )
-				end
-				
-			end )
-			
-			list.OnRowRightClick = function( main, line )
-			
+		WatchlistUIList = vgui.Create( "DListView", main )
+			WatchlistUIList:SetPos( 4, 27 )
+			WatchlistUIList:SetSize( 692, 369 )
+			WatchlistUIList:SetMultiSelect( false )
+			WatchlistUIList:AddColumn( "SteamID" )
+			WatchlistUIList:AddColumn( "Name" )
+			WatchlistUIList:AddColumn( "Admin" )
+			WatchlistUIList:AddColumn( "Reason" )
+			WatchlistUIList:AddColumn( "Time" )
+
+			WatchlistUIList.OnRowRightClick = function( main, line )
 				local menu = DermaMenu()
-				
+
 					menu:AddOption( "Copy SteamID", function()
-						SetClipboardText( list:GetLine( line ):GetValue( 1 ) )
+						SetClipboardText( WatchlistUIList:GetLine( line ):GetValue( 1 ) )
 						chat.AddText( "SteamID Copied" )
 					end ):SetIcon( "icon16/tag_blue_edit.png" )
-					
+
 					menu:AddOption( "Copy Name", function()
-						SetClipboardText( list:GetLine( line ):GetValue( 2 ) )
+						SetClipboardText( WatchlistUIList:GetLine( line ):GetValue( 2 ) )
 						chat.AddText( "Username Copied" )
 					end ):SetIcon( "icon16/user_edit.png" )
-					
+
 					menu:AddOption( "Copy Reason", function()
-						SetClipboardText( list:GetLine( line ):GetValue( 4 ) )
+						SetClipboardText( WatchlistUIList:GetLine( line ):GetValue( 4 ) )
 						chat.AddText( "Reason Copied" )
 					end ):SetIcon( "icon16/note_edit.png" )
-					
+
 					menu:AddOption( "Copy Time", function()
-						SetClipboardText( list:GetLine( line ):GetValue( 5 ) )
+						SetClipboardText( WatchlistUIList:GetLine( line ):GetValue( 5 ) )
 						chat.AddText( "Time Copied" )
 					end ):SetIcon( "icon16/clock_edit.png" )	
-					
-					menu:AddOption( "Remove", function()
-					
-						net.Start( "RequestDeletion" )
-							net.WriteString( list:GetLine( line ):GetValue( 1 ) )
-							net.WriteString( list:GetLine( line ):GetValue( 2 ) )
+
+					menu:AddOption("Remove", function()
+						local rowSteamID = WatchlistUIList:GetLine(line):GetValue(1)
+
+						net.Start("Watchlist_RequestDeletion")
+							net.WriteString(rowSteamID)
+						net.SendToServer()
+
+						-- Refresh list of watched players
+						net.Start("Watchlist_RequestWatchedPlayers")
 						net.SendToServer()
 						
-						list:Clear()
-						
-						table.Empty( tab )
-						
-						net.Start( "RequestFiles" )
-						net.SendToServer()
-						
-						net.Receive( "RequestFilesCallback", function()
-						
-							local name = net.ReadString()
-							local toIns = net.ReadTable()
-							
-							table.insert( tab, { name:gsub( "X", ":" ):sub( 1, -5 ), toIns[ 1 ], toIns[ 2 ], toIns[ 3 ], toIns[ 4 ] } )
-							
-							for k, v in pairs( tab ) do
-								list:AddLine( v[ 1 ], v[ 2 ], v[ 3 ], v[ 4 ], v[ 5 ] )
-							end
-							
-						end )	
-						
-					end ):SetIcon( "icon16/table_row_delete.png" )
+					end):SetIcon( "icon16/table_row_delete.png" )
 
 					menu:AddOption( "Ban by SteamID", function()
-					
 						local Frame = vgui.Create( "DFrame" )
 						Frame:SetSize( 250, 98 )
 						Frame:Center()
 						Frame:MakePopup()
 						Frame:SetTitle( "Ban by SteamID..." )
-						
+
 						local TimeLabel = vgui.Create( "DLabel", Frame )
 						TimeLabel:SetPos( 5,27 )
 						TimeLabel:SetColor( Color( 0,0,0,255 ) )
 						TimeLabel:SetFont( "DermaDefault" )
 						TimeLabel:SetText( "Time:" )
-						
+
 						local Time = vgui.Create( "DTextEntry", Frame )
 						Time:SetPos( 47, 27 )
 						Time:SetSize( 198, 20 )
 						Time:SetText( "" )
-						
+
 						local ReasonLabel = vgui.Create( "DLabel", Frame )
 						ReasonLabel:SetPos( 5,50 )
 						ReasonLabel:SetColor( Color( 0,0,0,255 ) )
 						ReasonLabel:SetFont( "DermaDefault" )
 						ReasonLabel:SetText( "Reason:" )
-						
+
 						local Reason = vgui.Create( "DTextEntry", Frame )
 						Reason:SetPos( 47, 50 )
 						Reason:SetSize( 198, 20 )
 						Reason:SetText("")
-						
+
 						local execbutton = vgui.Create( "DButton", Frame )
 						execbutton:SetSize( 75, 20 )
 						execbutton:SetPos( 47, 73 )
 						execbutton:SetText( "Ban!" )
 						execbutton.DoClick = function()
-							RunConsoleCommand( "ulx", "banid", tostring( list:GetLine( line ):GetValue( 1 ) ), Time:GetText(), Reason:GetText() )
+							local rowSteamID = WatchlistUIList:GetLine(line):GetValue(1)
+							RunConsoleCommand( "ulx", "banid", tostring(rowSteamID), Time:GetText(), Reason:GetText() )
 							Frame:Close()
 						end
-		
+
 						local cancelbutton = vgui.Create( "DButton", Frame )
 						cancelbutton:SetSize( 75, 20 )
 						cancelbutton:SetPos( 127, 73 )
@@ -1192,13 +1187,18 @@ if ( CLIENT ) then
 						cancelbutton.DoClick = function( cancelbutton )
 							Frame:Close()
 						end
-						
-					end ):SetIcon( "icon16/tag_blue_delete.png" )	
-					
-				menu:Open()	
-				
+
+					end):SetIcon( "icon16/tag_blue_delete.png" )
+
+				menu:Open()
 			end
-			
-	end )
-	
+
+		-- Request the list of watched players
+		net.Start("Watchlist_RequestWatchedPlayers")
+		net.SendToServer()
+	end
+
+	net.Receive("Watchlist_Open", function()
+		RenderWatchlist()
+	end)
 end
