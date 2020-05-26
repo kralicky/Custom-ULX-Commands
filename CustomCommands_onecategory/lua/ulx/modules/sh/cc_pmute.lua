@@ -3,10 +3,11 @@
 ----------------------------------------
 
 function ulx.pmute(calling_ply, target_plys, should_unmute)
-	if should_unpmute then
+	if should_unmute then
 		for k,v in pairs(target_plys) do
 			v:RemovePData("permmuted")
 			v.perma_muted = false
+			v:SetNWBool("perma_muted", v.perma_muted)
 		end
 
 		ulx.fancyLogAdmin(calling_ply, "#A removed the permanent mute for #T ", target_plys)
@@ -14,6 +15,7 @@ function ulx.pmute(calling_ply, target_plys, should_unmute)
 		for k,v in pairs(target_plys) do
 			v:SetPData("permmuted", "true")
 			v.perma_muted = true
+			v:SetNWBool("perma_muted", v.perma_muted)
 		end
 
 		ulx.fancyLogAdmin(calling_ply, "#A permanently muted #T", target_plys)
@@ -38,14 +40,17 @@ function ulx.pmuteid(calling_ply, steamID, should_unmute)
 		local ply = player.GetBySteamID(steamID)
 		if(ply) then
 			ply.perma_muted = false
+			ply:SetNWBool("perma_muted", ply.perma_muted)
 		end
 
 		ulx.fancyLogAdmin(calling_ply, "#A removed the permanent mute for #s", steamID)
 	else
 		util.SetPData(steamID, "permmuted", "true")
+
 		local ply = player.GetBySteamID(steamID)
 		if(ply) then
 			ply.perma_muted = true
+			ply:SetNWBool("perma_muted", ply.perma_muted)
 		end
 
 		ulx.fancyLogAdmin(calling_ply, "#A permanently muted #s", steamID)
@@ -64,7 +69,18 @@ pmuteid:setOpposite("ulx unpmuteid", { _, _, true }, "!unpmuteid")
 if SERVER then
 	hook.Remove("PlayerSay", "CustomULXCommands_PMute_PlayerSay")
 	hook.Add("PlayerSay", "CustomULXCommands_PMute_PlayerSay", function(ply, text, isTeamChat)
-		if(ply.perma_muted) then return "" end
+		if(ply:GetNWBool("ulx_muted") || ply.perma_muted) then
+			local lastMuteNotifTime = ply.lastMuteNotifTime or -1
+
+			if(lastMuteNotifTime + 10 < CurTime()) then
+				ULib.tsay(ply, "You are muted. No-one can see your messages!")
+				ply.lastMuteNotifTime = CurTime()
+			end
+		end
+
+		if(ply.perma_muted) then
+			return ""
+		end
 	end)
 end
 
@@ -84,9 +100,9 @@ end)
 
 hook.Remove("PlayerAuthed", "CustomULXCommands_PMute_PlayerConnected")
 hook.Add("PlayerAuthed", "CustomULXCommands_PMute_PlayerConnected", function(ply)
-	local isPlayerPermanentlyMuted = ply:GetPData("permmuted")
-	if isPlayerPermanentlyMuted == "true" then
+	if ply:GetPData("permmuted") == "true" then
 		ply.perma_muted = true
+		ply:SetNWBool("perma_muted", ply.perma_muted)
 
 		for k,v in pairs(player.GetHumans()) do
 			if v:IsAdmin() then
@@ -95,6 +111,7 @@ hook.Add("PlayerAuthed", "CustomULXCommands_PMute_PlayerConnected", function(ply
 		end
 	else
 		ply.perma_muted = false
+		ply:SetNWBool("perma_muted", ply.perma_muted)
 	end
 end)
 
@@ -110,7 +127,7 @@ function ulx.printpmutes(calling_ply)
 	end
 
 	local message = table.concat(permanentlyMutedPlayers, ", ")
-	ulx.fancyLog({calling_ply}, "PMuted: #s ", message)
+	ulx.fancyLog({calling_ply}, "PMuted: #s", message)
 end
 
 local printpmutes = ulx.command("Custom", "ulx printpmutes", ulx.printpmutes, "!printpmutes", true)
