@@ -1037,7 +1037,7 @@ if ( SERVER ) then
 		for k, otherPlayer in pairs( player.GetHumans()) do
 			if otherPlayer:IsAdmin() then
 				ULib.tsayError(otherPlayer, ply:Nick() .. " (" .. ply:SteamID() .. ") has joined the server and is on the watchlist!" )
-				ULib.tsayError(otherPlayer, "Reason: " .. watchlistInfo.Reason)
+				ULib.tsayColor(otherPlayer, Color(255, 141, 34), "Reason: ", Color(255, 0, 0), watchlistInfo.Reason)
 			end
 		end
 	end)
