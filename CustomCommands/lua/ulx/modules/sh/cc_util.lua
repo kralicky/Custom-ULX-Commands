@@ -1061,29 +1061,49 @@ watchlist:help( "View the watchlist" )
 
 
 if ( CLIENT ) then
+	function debounce(func, wait)
+		local timerName
+
+		return function(...)
+			local args = ...
+			local later = function()
+				timerName = nil
+				func(args)
+			end
+
+			if(timerName != nil) then timer.Remove(timerName) end
+			timerName = tostring(func) .. tostring(math.random(1, 9999999))
+			timer.Create(timerName, wait, 1, later)
+		end
+	end
+
 
 	local WatchlistUIList = nil
+	local WatchlistData = {}
+
+	local function UpdateWatchlistUIList(watchedPlayersList)
+		if(WatchlistUIList == nil) then return end
+
+		WatchlistUIList:Clear()
+
+		for k, watchedPlayer in pairs(watchedPlayersList) do
+			WatchlistUIList:AddLine(watchedPlayer.SteamID, watchedPlayer.PlayerName, watchedPlayer.AdminName, watchedPlayer.Reason, watchedPlayer.DateTime)
+		end
+	end
 	
 	net.Receive("Watchlist_RequestWatchedPlayersCallback", function()
 		local length = net.ReadUInt(32)
 		local dataCompressed = net.ReadData(length)
 
-		local watchedPlayers = util.JSONToTable(util.Decompress(dataCompressed))
-
-		if(WatchlistUIList != nil) then
-			WatchlistUIList:Clear()
-
-			for k, watchedPlayer in pairs(watchedPlayers) do
-				WatchlistUIList:AddLine(watchedPlayer.SteamID, watchedPlayer.PlayerName, watchedPlayer.AdminName, watchedPlayer.Reason, watchedPlayer.DateTime)
-			end
-		end
+		WatchlistData = util.JSONToTable(util.Decompress(dataCompressed))
+		UpdateWatchlistUIList(WatchlistData)
 	end)
 
 
 	local function RenderWatchlist()
 		local main = vgui.Create( "DFrame" )	
 			main:SetPos( 50,50 )
-			main:SetSize( 700, 400 )
+			main:SetSize( 700, 425 )
 			main:SetTitle( "Watchlist" )
 			main:SetVisible( true )
 			main:SetDraggable( true )
@@ -1095,8 +1115,42 @@ if ( CLIENT ) then
 			WatchlistUIList = nil
 		end
 
+
+		local searchBox = vgui.Create("DTextEntry", main)
+		searchBox:SetPos(4, 27)
+		searchBox:SetSize(300, 25)
+		searchBox:SetPlaceholderText("Search...")
+		searchBox:SetValue("")
+
+		searchBox:SetUpdateOnType(true)
+		searchBox.OnValueChange = debounce(function(self)
+			local searchTerm = string.lower(string.sub(self:GetValue(), 1, 200))
+
+			if(searchTerm == "") then
+				UpdateWatchlistUIList(WatchlistData)
+				return
+			end
+
+
+			local searchResults = {}
+			for k, watchedPlayer in pairs(WatchlistData) do
+				if(string.find(watchedPlayer.SteamID:lower(), searchTerm) != nil) then
+					table.insert(searchResults, watchedPlayer)
+				elseif(string.find(watchedPlayer.PlayerName:lower(), searchTerm) != nil) then
+					table.insert(searchResults, watchedPlayer)
+				elseif(string.find(watchedPlayer.Reason:lower(), searchTerm) != nil) then
+					table.insert(searchResults, watchedPlayer)
+				elseif(string.find(watchedPlayer.AdminName:lower(), searchTerm) != nil) then
+					table.insert(searchResults, watchedPlayer)
+				end
+			end
+
+			UpdateWatchlistUIList(searchResults)
+		end, 0.5)
+
+
 		WatchlistUIList = vgui.Create( "DListView", main )
-			WatchlistUIList:SetPos( 4, 27 )
+			WatchlistUIList:SetPos( 4, 52 )
 			WatchlistUIList:SetSize( 692, 369 )
 			WatchlistUIList:SetMultiSelect( false )
 			WatchlistUIList:AddColumn( "SteamID" )
