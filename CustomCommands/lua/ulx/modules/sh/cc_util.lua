@@ -943,6 +943,21 @@ if ( SERVER ) then
 			return file.Exists(WatchlistData.GetFilePath(steamID), "DATA")
 		end,
 
+		GetPlayerWatchlistInfo = function(steamID)
+			if(not WatchlistData.IsPlayerOnWatchlist(steamID)) then return nil end
+
+			local watchInfoRaw = file.Read(WatchlistData.GetFilePath(steamID), "DATA")
+			local watchInfo = string.Explode("\n", watchInfoRaw)
+
+			return {
+				SteamID = steamID:upper(),
+				PlayerName = watchInfo[1],
+				AdminName = watchInfo[2],
+				Reason = watchInfo[3],
+				DateTime = watchInfo[4]
+			}
+		end,
+
 		RemovePlayer = function(steamID)
 			file.Delete(WatchlistData.GetFilePath(steamID))
 		end,
@@ -1000,11 +1015,13 @@ if ( SERVER ) then
 	end)
 	
 	hook.Add("PlayerInitialSpawn", "CheckWatchedPlayers", function(ply)
-		if(WatchlistData.IsPlayerOnWatchlist(ply:SteamID()) == false) then return end
+		local watchlistInfo = WatchlistData.GetPlayerWatchlistInfo(ply:SteamID())
+		if(watchlistInfo == nil) then return end
 
 		for k, otherPlayer in pairs( player.GetHumans()) do
 			if otherPlayer:IsAdmin() then
 				ULib.tsayError(otherPlayer, ply:Nick() .. " (" .. ply:SteamID() .. ") has joined the server and is on the watchlist!" )
+				ULib.tsayError(otherPlayer, "Reason: " .. watchlistInfo.Reason)
 			end
 		end
 	end)
