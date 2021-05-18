@@ -1037,30 +1037,65 @@ if ( SERVER ) then
 	end)
 end
 
-function ulx.watch( calling_ply, target_ply, reason, should_unwatch )
+function ulx.watch( calling_ply, target_ply, reason )
 	local targetSteamID = target_ply:SteamID()
 	local targetPlayerName = target_ply:Nick()
 
-	if should_unwatch then
-		if WatchlistData.IsPlayerOnWatchlist(targetSteamID) then
-			WatchlistData.RemovePlayer(targetSteamID)
-			ulx.fancyLogAdmin(calling_ply, true, "#A removed #T from the watchlist", target_ply)
-		else
-			ULib.tsayError(calling_ply, targetPlayerName .. " is not on the watchlist.")
-		end
-	else
-		WatchlistData.AddPlayer(targetSteamID, targetPlayerName, calling_ply:Nick(), reason)
-		ulx.fancyLogAdmin(calling_ply, true, "#A added #T to the watchlist (#s)", target_ply, reason)
-	end
+	WatchlistData.AddPlayer(targetSteamID, targetPlayerName, calling_ply:Nick(), reason)
+	ulx.fancyLogAdmin(calling_ply, true, "#A added #T to the watchlist (#s)", target_ply, reason)
 end
 
 local watch = ulx.command( "Utility", "ulx watch", ulx.watch, "!watch", true )
 watch:addParam{ type=ULib.cmds.PlayerArg }
 watch:addParam{ type=ULib.cmds.StringArg, hint="reason", ULib.cmds.takeRestOfLine }
-watch:addParam{ type=ULib.cmds.BoolArg, invisible=true }
 watch:defaultAccess( ULib.ACCESS_ADMIN )
-watch:help( "Watch or unwatch a player" )
-watch:setOpposite( "ulx unwatch", { _, _, false, true }, "!unwatch", true )
+watch:help( "Watch a player" )
+
+
+function ulx.unwatch( calling_ply, target_ply)
+	local targetSteamID = target_ply:SteamID()
+
+	if WatchlistData.IsPlayerOnWatchlist(targetSteamID) then
+		WatchlistData.RemovePlayer(targetSteamID)
+		ulx.fancyLogAdmin(calling_ply, true, "#A removed #T from the watchlist", target_ply)
+	else
+		ULib.tsayError(calling_ply, targetPlayerName .. " is not on the watchlist.")
+	end
+end
+
+local unwatch = ulx.command( "Utility", "ulx unwatch", ulx.unwatch, "!unwatch", true )
+unwatch:addParam{ type=ULib.cmds.PlayerArg }
+unwatch:defaultAccess( ULib.ACCESS_ADMIN )
+unwatch:help( "Unwatch a player" )
+
+
+
+function ulx.watchid( calling_ply, targetSteamID, reason)
+	WatchlistData.AddPlayer(targetSteamID, "", calling_ply:Nick(), reason)
+	ulx.fancyLogAdmin(calling_ply, true, "#A added #s to the watchlist (#s)", targetSteamID, reason)
+end
+
+local watchid = ulx.command( "Utility", "ulx watchid", ulx.watchid, "!watchid", true )
+watchid:addParam{ type=ULib.cmds.StringArg, hint="Steam ID" }
+watchid:addParam{ type=ULib.cmds.StringArg, hint="reason", ULib.cmds.takeRestOfLine }
+watchid:defaultAccess( ULib.ACCESS_ADMIN )
+watchid:help( "Watch a player by their Steam ID" )
+
+
+function ulx.unwatchid( calling_ply, targetSteamID )
+	if WatchlistData.IsPlayerOnWatchlist(targetSteamID) then
+		WatchlistData.RemovePlayer(targetSteamID)
+		ulx.fancyLogAdmin(calling_ply, true, "#A removed #s from the watchlist", targetSteamID)
+	else
+		ULib.tsayError(calling_ply, targetSteamID .. " is not on the watchlist.")
+	end
+end
+
+local unwatchid = ulx.command( "Utility", "ulx unwatchid", ulx.unwatchid, "!unwatchid", true )
+unwatchid:addParam{ type=ULib.cmds.StringArg, hint="Steam ID" }
+unwatchid:defaultAccess( ULib.ACCESS_ADMIN )
+unwatchid:help( "Unwatch a player by their Steam ID" )
+
 
 
 
